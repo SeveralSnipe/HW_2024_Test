@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
+using System;
 
 public class JsonDataFetcher : MonoBehaviour
 {
     private const string url = "https://s3.ap-south-1.amazonaws.com/superstars.assetbundles.testbuild/doofus_game/doofus_diary.json";
+    public Action onDataLoaded;
 
     void Start()
     {
@@ -23,16 +25,34 @@ public class JsonDataFetcher : MonoBehaviour
         else
         {
             string json = request.downloadHandler.text;
+            Debug.Log("Fetched JSON: " + json);
             ParseJsonData(json);
         }
     }
 
     void ParseJsonData(string json)
+{
+    GameData gameData = JsonUtility.FromJson<GameData>(json);
+    if (gameData != null)
     {
-        GameData gameData = JsonUtility.FromJson<GameData>(json);
+        if (gameData.pulpit_data != null)
+        {
+            Debug.Log("JsonDataFetcher: PulpitData loaded successfully.");
+        }
+        else
+        {
+            Debug.LogError("JsonDataFetcher: PulpitData is null.");
+        }
         DataManager.Instance.SetData(gameData);
+        onDataLoaded?.Invoke();
+    }
+    else
+    {
+        Debug.LogError("JsonDataFetcher: Failed to parse GameData.");
     }
 }
+}
+
 
 
 [System.Serializable]

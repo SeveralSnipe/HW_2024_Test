@@ -5,8 +5,6 @@ public class DataManager : MonoBehaviour
 {
     public static DataManager Instance { get; private set; }
 
-    public event Action OnDataLoaded;
-
     private GameData gameData;
 
     void Awake()
@@ -14,7 +12,6 @@ public class DataManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
         }
         else if (Instance != this)
         {
@@ -25,8 +22,14 @@ public class DataManager : MonoBehaviour
     public void SetData(GameData data)
     {
         gameData = data;
-        OnDataLoaded?.Invoke();  // Trigger the event if there are subscribers
-        Debug.Log("Game data set successfully.");
+        if (gameData != null && gameData.pulpit_data != null)
+        {
+            Debug.Log("DataManager: GameData and PulpitData are set.");
+        }
+        else
+        {
+            Debug.LogError("DataManager: GameData or PulpitData is null.");
+        }
     }
 
     public GameData GetData()

@@ -1,13 +1,12 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
     public float speed;
     public float rotationSpeed;
-
     private CharacterController characterController;
+    private bool onPulpit = true;
 
     void Start()
     {
@@ -17,35 +16,30 @@ public class PlayerMovement : MonoBehaviour
         {
             Debug.LogError("CharacterController component is missing from the GameObject.");
         }
-        else
-        {
-            GetComponent<Renderer>().material.color = new Color(0.5f, 1, 1);
-        }
 
-        // Subscribe to the OnDataLoaded event
-        DataManager.Instance.OnDataLoaded += OnGameDataLoaded;
+        StartCoroutine(WaitForData());
     }
 
-    private void OnGameDataLoaded()
+    IEnumerator WaitForData()
     {
-        GameData data = DataManager.Instance.GetData();
-        if (data != null)
+        while (DataManager.Instance.GetData() == null)
         {
-            speed = data.player_data.speed;
-            Debug.Log("Game data loaded and applied to player movement.");
+            yield return null;
         }
+
+        GameData data = DataManager.Instance.GetData();
+        speed = data.player_data.speed;
     }
 
     void Update()
     {
         if (characterController != null)
         {
-            Debug.Log($"{speed}");
             float horizontalInput = Input.GetAxis("Horizontal");
             float verticalInput = Input.GetAxis("Vertical");
 
             Vector3 movementDirection = new Vector3(horizontalInput, 0, verticalInput);
-            float magnitude = Mathf.Clamp01(movementDirection.magnitude) * speed;
+            float magnitude = Mathf.Clamp01(movementDirection.magnitude) * speed * 2;
             movementDirection.Normalize();
 
             characterController.SimpleMove(movementDirection * magnitude);
@@ -55,13 +49,36 @@ public class PlayerMovement : MonoBehaviour
                 Quaternion toRotation = Quaternion.LookRotation(movementDirection, Vector3.up);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, toRotation, rotationSpeed * Time.deltaTime);
             }
+
+            CheckIfFalling();
         }
     }
 
-    void OnDestroy()
+    void CheckIfFalling()
     {
-        // Unsubscribe from the event when the object is destroyed
-        DataManager.Instance.OnDataLoaded -= OnGameDataLoaded;
+        if (transform.position.y < -1f)
+        {
+            GameManager.Instance.GameOver();
+        }
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        Debug.Log("Entered onTrigger");
+        if (other.CompareTag("Pulpit") && !onPulpit)
+        {
+            onPulpit = true;
+            Debug.Log("Player is on a pulpit.");
+            GameManager.Instance.IncreaseScore();
+        }
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Pulpit"))
+        {
+            onPulpit = false;
+            Debug.Log("Player left the pulpit.");
+        }
     }
 }
-
